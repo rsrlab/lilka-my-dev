@@ -11,6 +11,7 @@
 #include "services/telnet.h"
 #include "services/KeiraBLEService.h"
 #include "services/ftp.h"
+#include "services/webloader.h"
 #include "apps/statusbar.h"
 #include "apps/launcher.h"
 
@@ -28,6 +29,9 @@ void setup() {
 #ifdef LILKA_BLE
     serviceManager->addService(new KeiraBLEService());
 #endif
+//#ifdef LILKA_WEB
+    serviceManager->addService(new WebLoaderService());
+//#endif
     appManager->setPanel(new StatusBarApp());
     appManager->runApp(new LauncherApp());
 }
