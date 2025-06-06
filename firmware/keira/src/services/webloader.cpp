@@ -12,6 +12,7 @@ static const char html[] = R"(
     <input type="file" name="file">
     <button type="submit">Upload & Run</button>
   </form>
+  <a href="/download"/>Browse SD card</a>
 </body>
 </html>)";
 
@@ -56,6 +57,106 @@ static int getContentLength(httpd_req_t *req) {
     return contentLengthValue;
 }
 
+String getQueryPath(httpd_req_t *req) {
+    const int queryStringSize = 512;
+    char queryString[queryStringSize];
+
+    String result;
+
+    auto err = httpd_req_get_url_query_str(req, queryString, queryStringSize);
+    if (err == ESP_OK) {
+        auto query = strnstr(queryString, "p=", sizeof(queryStringSize));
+        if (query != NULL) {
+            query += 2;
+            result = query;
+        }
+    }
+
+    return result;
+}
+
+static esp_err_t download_handler(httpd_req_t *req) {
+    esp_err_t err = ESP_OK;
+    auto query = getQueryPath(req);
+    auto root = lilka::fileutils.getSDRoot();
+    auto path = lilka::fileutils.joinPath(root, query);
+
+    auto dir = opendir(path.c_str());
+    if (dir != NULL) {
+        // directory listing
+        lilka::serial.log("List dir %s", query);
+
+        err = httpd_resp_set_type(req, "text/html");
+        if (err == ESP_OK) {
+            const struct dirent *direntry = NULL;
+            httpd_resp_sendstr_chunk(req, "<!DOCTYPE html><html><meta charset=\"UTF-8\"><body><ul style=\"list-style: none;\">");
+            while((direntry = readdir(dir)) != NULL) {
+                String itemHtml("<li><a href='/download?p=");
+                auto absolutePath = lilka::fileutils.joinPath(query, direntry->d_name);
+                itemHtml += absolutePath;
+                if (direntry->d_type == DT_DIR) {
+                    itemHtml += "'>📁";
+                } else {
+                    itemHtml += "'>📄";
+                }
+                itemHtml += direntry->d_name;
+                itemHtml += "</a></li>";
+                httpd_resp_sendstr_chunk(req, itemHtml.c_str());
+            }
+            httpd_resp_sendstr_chunk(req, "</ul></body></html>");
+            httpd_resp_send_chunk(req, 0, 0);
+        }
+
+        closedir(dir);
+    } else {
+        // reply with file
+        lilka::serial.log("Download %s", query);
+
+        auto file = fopen(path.c_str(), "r");
+        if (file == NULL) {
+            httpd_resp_send_404(req);
+            return ESP_OK;
+        }
+
+        for(char* scanForName = path.end(); scanForName > path.begin(); scanForName--)
+        {
+            if (*scanForName == '/' || *scanForName == '\\')
+            {
+                scanForName++; // skip separator
+                auto fileNameHeader = String("attachment; filename=\"");
+                fileNameHeader += scanForName;
+                fileNameHeader += "\"";
+                err = httpd_resp_set_hdr(req, "Content-Disposition", fileNameHeader.c_str());
+                break;
+            }
+        }
+
+        if (err == ESP_OK) {
+            const int fileBufSize = 4096;
+            char* fileBuf = (char*)malloc(fileBufSize);
+
+            err = httpd_resp_set_type(req, "application/octet-stream");
+            if (err == ESP_OK) {
+                do {
+                    auto read = fread(fileBuf, 1, fileBufSize, file);
+                    if (read >= 0) {
+                        err = httpd_resp_send_chunk(req, fileBuf, read);
+                        if (err != ESP_OK) {
+                            break;
+                        }
+                    }
+                } while(read > 0);
+            }
+
+            free(fileBuf);
+        }
+        
+        fclose(file);
+    }
+
+    return err;
+}
+
 static esp_err_t upload_handler(httpd_req_t *req) {
     esp_ota_handle_t ota_handle;
     esp_err_t res = httpd_resp_set_type(req, "text/html");
@@ -74,8 +175,8 @@ static esp_err_t upload_handler(httpd_req_t *req) {
     esp_err_t err = esp_ota_begin(ota_partition, contentLength, &ota_handle);
     lilka::serial.log("esp_ota_begin end");
     if (err == ESP_OK) {
-        const int bufSize = 1024;
-        char* buf = (char*)ps_malloc(bufSize);
+        const int bufSize = 4096;
+        char* buf = (char*)malloc(bufSize);
         bool seekBinary = true;
         lilka::serial.log("Recv begin");
 
@@ -87,20 +188,15 @@ static esp_err_t upload_handler(httpd_req_t *req) {
                 break;
             }
 
-            lilka::serial.log("Recv %d bytes", len);
-
             char* towrite = buf;
             if (seekBinary) {
                 auto beforeBinary = strnstr(buf, fileHeaderDivider, len);
                 towrite = beforeBinary + 4;
                 len -= towrite - buf;
                 seekBinary = false;
-
-                lilka::serial.log("skip header %d %d %d", buf, towrite, len);
             }
 
             if (len > 0) {
-                lilka::serial_log("Write %d bytes", len);
                 err = esp_ota_write(ota_handle, towrite, len);
                 if (err != ESP_OK) {
                     break;
@@ -118,7 +214,7 @@ static esp_err_t upload_handler(httpd_req_t *req) {
         free(buf);
     }
 
-    lilka::serial_log("Upload error %d", err);
+    lilka::serial.log("Upload error %d", (int)err);
 
     if (err == ESP_OK) {
         // reply & restart
@@ -153,10 +249,18 @@ static void startWebServer()
         .user_ctx  = NULL
     };
 
-    lilka::serial_log("Start Web Loader on %d", config.server_port);
+    httpd_uri_t download_uri = {
+        .uri       = "/download",
+        .method    = HTTP_GET,
+        .handler   = download_handler,
+        .user_ctx  = NULL
+    };
+
+    lilka::serial.log("Start Web Loader on %d", config.server_port);
     if (httpd_start(&stream_httpd, &config) == ESP_OK) {
         httpd_register_uri_handler(stream_httpd, &index_uri);
         httpd_register_uri_handler(stream_httpd, &upload_uri);
+        httpd_register_uri_handler(stream_httpd, &download_uri);
     }
 }
 
