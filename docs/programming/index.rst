@@ -14,3 +14,6 @@
     keira
     custom_firmware
     extension
+    SDK <https://docs.lilka.dev/projects/sdk/>
+    Lua API <https://docs.lilka.dev/projects/keira/uk/latest/lua/intro/>
+    Приклади <https://github.com/lilka-dev/examples>
