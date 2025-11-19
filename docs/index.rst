@@ -45,34 +45,23 @@
     hardware/index
     assembly/index
     programming/index
-    KeiraOS <https://docs.lilka.dev/projects/keira/>
-    SDK <https://docs.lilka.dev/projects/sdk/>
     Каталог додатків <https://catalog.lilka.dev/>
     faq/index
-    glossary
-    community
     contributing/index
+    glossary
 
 .. .. sidebar-links::
 ..     :caption: Посилання:
 ..     :github:
 
 .. toctree::
-    :caption: Посилання
+    :caption: Корисні Посилання
 
-    Головна документація <https://docs.lilka.dev>
-    Документація KeiraOS <https://docs.lilka.dev/projects/keira/>
-    Документація SDK <https://docs.lilka.dev/projects/sdk/>
-
-    GitHub <https://github.com/lilka-dev/lilka>
-    Приклади <https://github.com/lilka-dev/examples>
+    GitHub МоноРепо <https://github.com/lilka-dev/lilka>
+    GitHub SDK <https://github.com/lilka-dev/sdk>
+    GitHub KeiraOS <https://github.com/lilka-dev/keira>
+    Examples <https://github.com/lilka-dev/examples>
     Discord <https://discord.gg/HU68TaKCu6>
-
-.. toctree::
-    :caption: Проєкти нашої спільноти
-
-    "Rustilka": Rust для Лілки <https://rust.lilka.dev>
-    "Meowui": альтернативний UI для Лілки <https://github.com/Kolodieiev/lilka_v2_meowui>
 
 Indices and tables
 ==================

@@ -32,8 +32,10 @@ html_static_path = ["_static"]
 html_theme_options = {
     "collapse_navigation": False,
     "logo_only": True,
-    "titles_only": True,
+    "titles_only": False,
     "display_version": False,
+    "navigation_depth": 4,
+    "includehidden": True,
 }
 html_logo = "_static/lilka_logo.png"
 html_favicon = "_static/favicon.ico"
