@@ -47,7 +47,7 @@
     programming/index
     KeiraOS <https://docs.lilka.dev/projects/keira/>
     SDK <https://docs.lilka.dev/projects/sdk/>
-    case/index
+    Каталог додатків <https://catalog.lilka.dev/>
     faq/index
     glossary
     community
@@ -65,6 +65,7 @@
     Документація SDK <https://docs.lilka.dev/projects/sdk/>
 
     GitHub <https://github.com/lilka-dev/lilka>
+    Приклади <https://github.com/lilka-dev/examples>
     Discord <https://discord.gg/HU68TaKCu6>
 
 .. toctree::
